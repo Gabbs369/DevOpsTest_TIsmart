@@ -1,0 +1,35 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: jenkins
+  namespace: jenkins 
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: jenkins
+  strategy: {}
+  template:
+    metadata:
+      labels:
+        app: jenkins
+    spec:
+      containers:
+      - image: jenkins/jenkins:lts
+        name: jenkins
+        ports:
+        - name: http-port
+          containerPort: 8080
+        volumeMounts:
+        - name: jenkins-volume
+          mountPath: /var/jenkins_volume
+        - name: kubeconfig-volume
+          mountPath: /root/.kube
+        resources: {}
+      volumes:
+      - name: jenkins-volume
+        emptyDir: {}
+      - name: kubeconfig-volume
+        secret:
+          secretName: jenkins-kubeconfig
+status: {}
