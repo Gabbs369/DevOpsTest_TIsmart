@@ -2,16 +2,16 @@ pipeline {
     agent any
 
     environment {
-        DOCKER_IMAGE = 'mi-imagen-java' // Cambia esto según tus necesidades
-        KUBE_CONFIG = '/root/.kube/config' // Ruta donde se encuentra el kubeconfig
-        K8S_DEPLOYMENT_NAME = 'mi-aplicacion-java'
+        DOCKER_IMAGE = 'java_app' 
+        KUBE_CONFIG = '/root/.kube/config'
+        K8S_DEPLOYMENT_NAME = 'java_app.java'
         K8S_NAMESPACE = 'jenkins'
     }
 
     stages {
         stage('Clonar Repositorio') {
             steps {
-                git 'https://github.com/Pruthvi360/deveops-course.git'
+                git 'https://github.com/Gabbs369/DevOpsTest_TIsmart'
             }
         }
         
