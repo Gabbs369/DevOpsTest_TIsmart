@@ -1,0 +1,56 @@
+pipeline {
+    agent any
+    
+    environment {
+        SERVER_IP = '34.45.124.229' 
+        SSH_CREDENTIALS_ID = 'jenkins-ssh'  
+    }
+
+    stages {
+        stage('Checkout Code') {
+            steps {
+                git branch: 'main', url: 'https://github.com/Gabbs369/DevOpsTest_TIsmart'
+            }
+        }
+
+        stage('Dockerfile creacion') {
+            steps {
+                sshagent(credentials: [SSH_CREDENTIALS_ID]){
+                sh '''
+                echo "de app docker hub a local"
+                docker pull gabbs/frontend-app:0.1
+                '''
+                }
+            }
+        }
+
+        stage('GKE conexion') {
+            steps {
+                sshagent(credentials: [SSH_CREDENTIALS_ID]){
+                sh '''
+                gcloud container clusters get-credentials devopstest --zone us-central1-c --project devops-project-437014
+                '''
+                }
+            }
+        }
+//test until here
+        stage('Desplegando frontend app') {
+            steps {
+                sh '''
+                /home/xdsebaxx/DevOpsTest_TIsmart/frontend_app
+                kubectl apply -f frontend-deployment.yml
+                kubectl apply -f svc.yml
+                '''
+            }
+        }
+
+        stage('Validacion frontend-app') {
+            steps {
+                sh '''
+                kubectl get pod  | grep "frontend-app"
+                kubectl get svc | grep "frontend-app"
+                '''
+            }
+        }
+    }
+}
