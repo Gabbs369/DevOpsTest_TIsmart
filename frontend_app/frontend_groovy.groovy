@@ -2,41 +2,54 @@ pipeline {
     agent any
 
     environment {
-        KUBE_CONFIG = '/root/.kube/config' 
+        PROJECT_ID = 'devops-project-437014'
+        GCR_HOSTNAME = 'gcr.io'
+        GKE_CLUSTER = 'devopstest'
+        GKE_ZONE = 'us-central1-c'
+        IMAGE_NAME = "gabbs3/frontend-app"
+        BUILD_NUMBER = "0.1"
+        DEPLOYMENT_NAME = 'frontend-app'
     }
 
     stages {
-        stage('Checkout') {
+        stage('Checkout Code') {
             steps {
-                git 'https://github.com/Gabbs369/DevOpsTest_TIsmart' 
+                git branch: 'main', url: 'https://github.com/Gabbs369/DevOpsTest_TIsmart'
             }
         }
-        
-        stage('Build') {
+
+        stage('Build Docker Image') {
             steps {
                 script {
-                    sh 'docker build -t frontend-app .'
+                    docker.build("gabbs3/${IMAGE_NAME}:$BUILD_NUMBER")
                 }
             }
         }
 
-        stage('Deploy to Kubernetes') {
+        stage('Deploy to GKE') {
             steps {
                 script {
-                    // Establecer el contexto de Kubernetes usando kubeconfig
-                    sh "kubectl --kubeconfig=${KUBE_CONFIG} apply -f frontend-deployment.yaml"
-                    sh "kubectl --kubeconfig=${KUBE_CONFIG} apply -f frontend-service.yaml"
+                    withCredentials([file(credentialsId: 'gke-credentials', variable: 'GOOGLE_APPLICATION_CREDENTIALS')]) {
+                        sh """
+                        gcloud auth activate-service-account --key-file=${GOOGLE_APPLICATION_CREDENTIALS}
+                        gcloud container clusters get-credentials ${GKE_CLUSTER} --zone ${GKE_ZONE} --project ${PROJECT_ID}
+                        
+                        # Update deployment with new image
+                        kubectl set image deployment/${DEPLOYMENT_NAME} ${DEPLOYMENT_NAME}=${IMAGE_NAME}:$BUILD_NUMBER --record
+
+                        # Apply service and deployment if necessary
+                        kubectl apply -f svc.yml
+                        kubectl apply -f frontend-deployment.yml
+                        """
+                    }
                 }
             }
         }
     }
 
     post {
-        success {
-            echo 'Aplicación desplegada exitosamente en Kubernetes.'
-        }
-        failure {
-            echo 'Hubo un error durante el despliegue.'
+        always {
+            cleanWs()
         }
     }
 }
